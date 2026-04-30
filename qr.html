@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Генератор QR-кода из текста</title>
+    <!-- Подключаем библиотеку QRCode.js (стабильная, рисует через canvas) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #f0f4fc 0%, #e2e8f0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Стильная карточка */
+        .qr-card {
+            max-width: 580px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(2px);
+            border-radius: 48px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.05);
+            padding: 2rem 1.8rem 2.2rem;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 500px) {
+            .qr-card {
+                padding: 1.5rem;
+                border-radius: 32px;
+            }
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e2b3c, #2c4e6e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 0.45rem;
+            letter-spacing: -0.3px;
+        }
+
+        .sub {
+            color: #4a5b6e;
+            margin-bottom: 1.7rem;
+            font-size: 0.95rem;
+            border-left: 3px solid #3b82f6;
+            padding-left: 12px;
+            font-weight: 450;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.8rem;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 1rem 1.2rem;
+            font-size: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 32px;
+            background: white;
+            transition: 0.2s;
+            outline: none;
+            color: #0f172a;
+            font-weight: 500;
+        }
+
+        .input-field:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .input-field::placeholder {
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            border: none;
+            background: #1e293b;
+            color: white;
+            font-weight: 600;
+            padding: 0.8rem 1.6rem;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-primary {
+            background: linear-gradient(100deg, #2563eb, #1d4ed8);
+            box-shadow: 0 8px 18px -8px #3b82f6;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(100deg, #1d4ed8, #1e40af);
+            transform: scale(0.98);
+            box-shadow: 0 4px 12px -4px #2563eb;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #cbd5e1;
+            color: #1e293b;
+            box-shadow: none;
+        }
+
+        .btn-outline:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+
+        .qr-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 1.8rem 0 1.4rem;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 32px;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03), 0 10px 20px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        #qrcode canvas,
+        #qrcode img {
+            border-radius: 20px;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+            max-width: 100%;
+            height: auto;
+        }
+
+        .message-area {
+            min-height: 60px;
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-align: center;
+        }
+
+        .error-msg {
+            color: #dc2626;
+            background: #fee2e2;
+            padding: 10px 15px;
+            border-radius: 60px;
+            backdrop-filter: blur(2px);
+        }
+
+        .success-msg {
+            color: #15803d;
+            background: #dcfce7;
+            padding: 8px 15px;
+            border-radius: 60px;
+        }
+
+        .info-hint {
+            color: #5583b0;
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: 1rem;
+            background: #eef3fc;
+            padding: 8px 12px;
+            border-radius: 28px;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .download-btn {
+            background: #0f3b2c;
+            background: linear-gradient(115deg, #2b6e4e, #1f5a3f);
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(115deg, #1f5a3f, #16432e);
+        }
+
+        hr {
+            margin: 0.6rem 0;
+            border: none;
+            height: 1px;
+            background: radial-gradient(circle, #cbd5e1 30%, transparent);
+        }
+    </style>
+</head>
+<body>
+
+<div class="qr-card">
+    <h1>✨ QR‑Генератор</h1>
+    <div class="sub">Превратите любую строчку в моментальный QR‑код</div>
+
+    <div class="input-group">
+        <input type="text" id="textInput" class="input-field" 
+               placeholder="Введите текст, ссылку, контакты или любую строку..." 
+               value="⭐ Привет! QR-код из текста — это удобно и стильно">
+    </div>
+
+    <div class="btn-group">
+        <button id="generateBtn" class="btn btn-primary">✨ Сгенерировать</button>
+        <button id="downloadBtn" class="btn btn-outline download-btn" style="display: none;">📥 Скачать PNG</button>
+    </div>
+
+    <!-- Контейнер для QR-кода -->
+    <div class="qr-wrapper">
+        <div id="qrcode"></div>
+    </div>
+
+    <div id="messageBox" class="message-area"></div>
+    <div class="info-hint">
+        💡 Поддерживаются любые символы, URL, эмодзи. При длинном тексте QR автоматически увеличит версию.<br>
+        До ~ 3000 знаков (латиница/кириллица). Нажмите «Скачать PNG», чтобы сохранить QR.
+    </div>
+</div>
+
+<script>
+    (function() {
+        // --- DOM элементы ---
+        const textInput = document.getElementById('textInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const qrContainer = document.getElementById('qrcode');
+        const messageBox = document.getElementById('messageBox');
+
+        // --- Состояние приложения ---
+        let qrCodeInstance = null;          // объект QRCode
+        let lastValidText = '';              // последний успешно закодированный текст
+        let generationInProgress = false;
+
+        // --- Настройки QR (размер, цвета, уровень коррекции L для максимальной ёмкости) ---
+        const QR_CONFIG = {
+            width: 260,
+            height: 260,
+            colorDark: "#1F2A3E",    // тёмный графит
+            colorLight: "#FFFFFF",
+            correctLevel: QRCode.CorrectLevel.L   // L = позволяет хранить больше данных (~7% коррекции)
+        };
+
+        // --- Очистка сообщений и вспомогательные UI ---
+        function clearMessages() {
+            messageBox.innerHTML = '';
+            messageBox.className = 'message-area';
+        }
+
+        function showError(text) {
+            clearMessages();
+            messageBox.innerHTML = `<div class="error-msg">⚠️ ${text}</div>`;
+            messageBox.className = 'message-area error';
+            // при ошибке скрываем кнопку скачивания (QR может быть невалиден)
+            downloadBtn.style.display = 'none';
+        }
+
+        function showSuccessMessage(text) {
+            clearMessages();
+            messageBox.innerHTML = `<div class="success-msg">✅ ${text}</div>`;
+            messageBox.className = 'message-area success';
+        }
+
+        // --- Показать кнопку скачивания, если canvas существует ---
+        function toggleDownloadButton() {
+            if (!qrContainer) return;
+            const canvas = qrContainer.querySelector('canvas');
+            if (canvas && canvas.toDataURL && lastValidText.trim() !== '') {
+                downloadBtn.style.display = 'inline-flex';
+            } else {
+                downloadBtn.style.display = 'none';
+            }
+        }
+
+        // --- Функция ВОССТАНОВЛЕНИЯ предыдущего корректного QR (при ошибке) ---
+        function revertToLastValidQR() {
+            if (qrCodeInstance && lastValidText && lastValidText.trim() !== '') {
+                try {
+                    qrCodeInstance.makeCode(lastValidText);
+                    showSuccessMessage('Восстановлен предыдущий код. Указанный текст слишком длинный или содержит недопустимые символы для QR.');
+                    toggleDownloadButton();
+                } catch (rollbackErr) {
+                    console.warn("Rollback failed", rollbackErr);
+                    showError('Не удалось восстановить QR. Перезагрузите страницу.');
+                    downloadBtn.style.display = 'none';
+                }
+            } else {
+                // Если нет предыдущего валидного текста – очищаем и показываем пустоту
+                if (qrContainer) qrContainer.innerHTML = '';
+                showError('Невозможно создать QR-код. Проверьте введённые данные.');
+                downloadBtn.style.display = 'none';
+            }
+        }
+
+        // --- Основная функция генерации (обновление QR по тексту) ---
+        function generateQRFromText(textToEncode) {
+            if (generationInProgress) return;
+            
+            let processedText = textToEncode.trim();
+            
+            // Пустая строка: ошибка, но не ломаем старый QR
+            if (processedText === "") {
+                showError("Введите текст для генерации QR-кода!");
+                return false;
+            }
+
+            generationInProgress = true;
+
+            try {
+                // Случай 1: Экземпляр QR уже создан (переиспользуем makeCode)
+                if (qrCodeInstance) {
+                    // Пробуем обновить код новым текстом
+                    qrCodeInstance.makeCode(processedText);
+                    // Если дошли сюда без исключений — успех
+                    lastValidText = processedText;
+                    showSuccessMessage(`QR-код обновлён! Длина текста: ${processedText.length} симв.`);
+                    toggleDownloadButton();
+                    generationInProgress = false;
+                    return true;
+                } 
+                // Случай 2: Первый запуск — создаём новый экземпляр QRCode с конфигом и текстом
+                else {
+                    // Очищаем контейнер от возможных артефактов
+                    qrContainer.innerHTML = '';
+                    // Создаём объект с расширенными настройками
+                    qrCodeInstance = new QRCode(qrContainer, {
+                        text: processedText,
+                        width: QR_CONFIG.width,
+                        height: QR_CONFIG.height,
+                        colorDark: QR_CONFIG.colorDark,
+                        colorLight: QR_CONFIG.colorLight,
+                        correctLevel: QR_CONFIG.correctLevel
+                    });
+                    lastValidText = processedText;
+                    showSuccessMessage(`QR-код создан! Текст: ${processedText.length > 45 ? processedText.slice(0, 45) + '…' : processedText}`);
+                    toggleDownloadButton();
+                    generationInProgress = false;
+                    return true;
+                }
+            } catch (err) {
+                generationInProgress = false;
+                console.error("QR generation error:", err);
+                
+                // Анализируем ошибку (чаще всего "Code length overflow" или подобное)
+                let errorMsg = "Ошибка генерации QR-кода.";
+                if (err.message && err.message.includes("overflow")) {
+                    errorMsg = "❌ Текст слишком длинный для QR-кода! Попробуйте сократить до ~2500 символов (кириллица/латиница).";
+                } else if (err.message) {
+                    errorMsg = `Ошибка: ${err.message.substring(0, 100)}`;
+                } else {
+                    errorMsg = "Неизвестная ошибка. Возможно, текст содержит недопустимые символы.";
+                }
+                
+                // Если есть предыдущий валидный QR — восстанавливаем его
+                if (lastValidText && lastValidText.trim() !== "") {
+                    revertToLastValidQR();
+                    // Дополнительно выводим ошибку, но код остался старый
+                    showError(`${errorMsg} Показан предыдущий QR-код.`);
+                } else {
+                    // Нет валидного текста — чистим и показываем ошибку
+                    if (qrCodeInstance) {
+                        // Попытка очистить контейнер
+                        qrContainer.innerHTML = '';
+                        qrCodeInstance = null;
+                    } else {
+                        qrContainer.innerHTML = '';
+                    }
+                    showError(`${errorMsg} Введите другой текст.`);
+                    downloadBtn.style.display = 'none';
+                }
+                return false;
+            }
+        }
+
+        // --- Обработчик кнопки "Сгенерировать" ---
+        function onGenerateClick() {
+            let rawText = textInput.value;
+            if (rawText === undefined || rawText === null) rawText = '';
+            // Не обрезаем пробелы полностью? обрежем, но предупредим о пустом
+            const trimmed = rawText.trim();
+            if (trimmed === "") {
+                showError("Пожалуйста, введите текст в поле ввода.");
+                return;
+            }
+            generateQRFromText(rawText);  // сохраняем исходный вид (пробелы по бокам? удалим внутри, но keep as is)
+            // После успеха обновляем lastValidText, но уже внутри generate обновится.
+        }
+
+        // --- Скачивание QR-кода как PNG (из canvas) ---
+        function downloadQRAsPNG() {
+            if (!qrContainer) {
+                showError("Контейнер QR не найден.");
+                return;
+            }
+            const canvas = qrContainer.querySelector('canvas');
+            if (!canvas) {
+                showError("QR-код ещё не сгенерирован или используется табличная верстка. Попробуйте сгенерировать заново.");
+                return;
+            }
+            
+            try {
+                // Проверяем, есть ли данные в canvas
+                const dataURL = canvas.toDataURL('image/png');
+                if (dataURL === 'data:,') {
+                    showError("Не удалось получить изображение. Сгенерируйте QR ещё раз.");
+                    return;
+                }
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                let filename = `qr_code_${timestamp}.png`;
+                if (lastValidText && lastValidText.trim().length > 0) {
+                    let slug = lastValidText.trim().slice(0, 20).replace(/[^a-zа-яё0-9]/gi, '_');
+                    if (slug) filename = `qr_${slug}_${timestamp}.png`;
+                }
+                link.download = filename;
+                link.href = dataURL;
+                link.click();
+                showSuccessMessage("QR-код сохранён как PNG!");
+            } catch (err) {
+                console.error(err);
+                showError("Ошибка при сохранении изображения.");
+            }
+        }
+
+        // --- Инициализация страницы: демо-пример + установка обработчиков ---
+        function initPage() {
+            // Устанавливаем обработчики
+            generateBtn.addEventListener('click', onGenerateClick);
+            downloadBtn.addEventListener('click', downloadQRAsPNG);
+            
+            // По умолчанию в инпуте уже есть текст (вёрстка содержит value)
+            // Если инпут пуст из-за браузера, зададим красивый пример.
+            if (!textInput.value || textInput.value.trim() === "") {
+                textInput.value = "🚀 Простой способ поделиться текстом через QR";
+            }
+            
+            // Генерируем QR для первоначального текста, чтобы не было пустого контейнера
+            const initialText = textInput.value;
+            // Инициализация: вызываем генерацию с созданием экземпляра
+            // Но чтобы избежать двойного вызова, используем generateQRFromText
+            // Важно: при первом вызове qrCodeInstance === null, создаст новый объект
+            setTimeout(() => {
+                // Небольшая задержка для полной загрузки DOM
+                if (!qrCodeInstance) {
+                    generateQRFromText(initialText);
+                } else {
+                    // На всякий случай, если вдруг что-то создалось раньше
+                    if (lastValidText === '') {
+                        generateQRFromText(initialText);
+                    }
+                }
+            }, 30);
+        }
+
+        // Дополнительная защита: если кликнуть по generate во время уже генерации
+        // и автофокус приятный
+        textInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                onGenerateClick();
+            }
+        });
+
+        // При изменении текста можем сбросить сообщение, но не трогаем пока QR
+        textInput.addEventListener('input', () => {
+            if (messageBox.innerHTML.includes('✅') || messageBox.innerHTML.includes('⚠️')) {
+                // убираем сообщение о предыдущем успехе/ошибке, но не агрессивно
+                if (!generationInProgress) {
+                    clearMessages();
+                }
+            }
+        });
+
+        // Стартуем инициализацию
+        initPage();
+    })();
+</script>
+</body>
+</html>
